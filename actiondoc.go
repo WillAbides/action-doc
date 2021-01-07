@@ -10,19 +10,19 @@ import (
 )
 
 type markdownConfig struct {
-	SkipName              bool
+	SkipActionName        bool
 	SkipActionDescription bool
-	SkipAuthor            bool
+	SkipActionAuthor      bool
 	HeaderPrefix          string
 }
 
 // MarkdownOption is an option for configuring markdown output
 type MarkdownOption func(config *markdownConfig)
 
-// SkipName skip outputting the name of the action
-func SkipName(val bool) MarkdownOption {
+// SkipActionName skip outputting the name of the action
+func SkipActionName(val bool) MarkdownOption {
 	return func(config *markdownConfig) {
-		config.SkipName = val
+		config.SkipActionName = val
 	}
 }
 
@@ -33,10 +33,10 @@ func SkipActionDescription(val bool) MarkdownOption {
 	}
 }
 
-// SkipAuthor skip outputting the action author
-func SkipAuthor(val bool) MarkdownOption {
+// SkipActionAuthor skip outputting the action author
+func SkipActionAuthor(val bool) MarkdownOption {
 	return func(config *markdownConfig) {
-		config.SkipAuthor = val
+		config.SkipActionAuthor = val
 	}
 }
 
@@ -53,7 +53,7 @@ func ActionMarkdown(r io.Reader, option ...MarkdownOption) ([]byte, error) {
 	for _, opt := range option {
 		opt(&cfg)
 	}
-	if !cfg.SkipName {
+	if !cfg.SkipActionName {
 		cfg.HeaderPrefix += "#"
 	}
 	var props actionProperties
@@ -103,9 +103,9 @@ type tmplData struct {
 }
 
 var tmpl = template.Must(template.New("").Parse(`
-{{- with .Properties}}{{ if not $.Config.SkipName }}{{$.Config.HeaderPrefix}} {{ .Name }}
+{{- with .Properties}}{{ if not $.Config.SkipActionName }}{{$.Config.HeaderPrefix}} {{ .Name }}
 {{ end }}
-{{ if not $.Config.SkipAuthor }}{{if .Author }}Author: {{.Author}}
+{{ if not $.Config.SkipActionAuthor }}{{if .Author }}Author: {{.Author}}
 
 {{end}}{{end}}
 {{- if not $.Config.SkipActionDescription }}{{ .Description }}

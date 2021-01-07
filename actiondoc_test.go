@@ -20,8 +20,8 @@ func TestActionMarkdown(t *testing.T) {
 			wantFile: "testdata/actions/ex1.md",
 		},
 		{
-			name:     "SkipName",
-			opts:     []MarkdownOption{SkipName(true)},
+			name:     "SkipActionName",
+			opts:     []MarkdownOption{SkipActionName(true)},
 			wantFile: "testdata/actions/ex1-skip_name.md",
 		},
 		{
@@ -30,8 +30,8 @@ func TestActionMarkdown(t *testing.T) {
 			wantFile: "testdata/actions/ex1-skip_action_description.md",
 		},
 		{
-			name:     "SkipAuthor",
-			opts:     []MarkdownOption{SkipAuthor(true)},
+			name:     "SkipActionAuthor",
+			opts:     []MarkdownOption{SkipActionAuthor(true)},
 			wantFile: "testdata/actions/ex1-skip_author.md",
 		},
 		{
@@ -42,9 +42,9 @@ func TestActionMarkdown(t *testing.T) {
 		{
 			name: "skip all",
 			opts: []MarkdownOption{
-				SkipAuthor(true),
+				SkipActionAuthor(true),
 				SkipActionDescription(true),
-				SkipName(true),
+				SkipActionName(true),
 			},
 			wantFile: "testdata/actions/ex1-skip_all.md",
 		},

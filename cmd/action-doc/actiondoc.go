@@ -24,9 +24,9 @@ var cli cliOptions
 func run(stdout io.Writer) error {
 	opts := []actiondoc.MarkdownOption{
 		actiondoc.HeaderPrefix(cli.HeaderPrefix),
-		actiondoc.SkipName(cli.SkipActionName),
+		actiondoc.SkipActionName(cli.SkipActionName),
 		actiondoc.SkipActionDescription(cli.SkipActionDescription),
-		actiondoc.SkipAuthor(cli.SkipActionAuthor),
+		actiondoc.SkipActionAuthor(cli.SkipActionAuthor),
 	}
 	input, err := os.Open(cli.ActionConfig)
 	if err != nil {
