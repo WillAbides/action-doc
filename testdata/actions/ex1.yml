@@ -1,0 +1,98 @@
+name: benchdiff
+description: run benchdiff and report status
+branding:
+  icon: zap
+  color: purple
+inputs:
+  benchdiff_version:
+    description: Version of benchdiff to use (exclude "v" from the front of the release name)
+    default: 0.4.1
+    required: false
+  benchdiff_dir:
+    description: Where benchdiff will be installed
+    default: ${{ runner.temp }}/benchdiff
+    required: false
+    deprecationMessage: Let's pretend this is deprecated
+  install_only:
+    description: Whether to stop after installing. Any value other than "false" is interpreted as true.
+    default: "false"
+    required: false
+  report_status:
+    description: Whether to report the status. Any value other than "true" is interpreted as false.
+    default: "true"
+    required: false
+  status_name:
+    description: Name to use in reporting status.
+    default: benchdiff
+    required: false
+  github_token:
+    description: Token to use for reporting status.
+    required: true
+  benchdiff_args:
+    description: |
+      Arguments for the benchdiff command.
+      All instances of $default_base_ref will be replaced with this repo's default branch.
+
+      See https://github.com/willabides/benchdiff for usage
+    default: "--base-ref=$default_base_ref"
+    required: false
+outputs:
+  benchdiff_bin:
+    description: path to the benchdiff executable
+    value: ${{ steps.install.outputs.benchdiff_bin }}
+  benchstat_output:
+    description: output from benchstat
+    value: ${{ steps.run-benchdiff.outputs.benchstat_output }}
+  bench_command:
+    description: command used to run benchmarks
+    value: ${{ steps.run-benchdiff.outputs.bench_command }}
+  head_sha:
+    description: git revision benchstat used as head
+    value: ${{ steps.run-benchdiff.outputs.head_sha }}
+  base_sha:
+    description: git revision benchstat used as base
+    value: ${{ steps.run-benchdiff.outputs.base_sha }}
+  degraded_result:
+    description: whether any part of the results is degraded
+    value: ${{ steps.run-benchdiff.outputs.degraded_result }}
+runs:
+  using: composite
+  steps:
+    - id: linux-only
+      shell: bash
+      run: |
+        if [ "${{ runner.os }}" != "Linux" ]; then
+          echo This action only runs on Linux
+          exit 1
+        fi
+    - id: install
+      shell: bash
+      run: |
+        ACTION_PATH="${{ github.action_path }}"
+        BENCHDIFF_DIR="${{ inputs.benchdiff_dir }}"
+        BENCHDIFF_VERSION="${{ inputs.benchdiff_version }}"
+        export ACTION_PATH BENCHDIFF_DIR BENCHDIFF_VERSION
+        "$ACTION_PATH/src/install.sh"
+    - id: run-benchdiff
+      shell: bash
+      run: |
+        ACTION_PATH='${{ github.action_path }}'
+        INSTALL_ONLY='${{ inputs.install_only }}'
+        BENCHDIFF_ARGS='${{ inputs.benchdiff_args }}'
+        BENCHDIFF_BIN='${{ steps.install.outputs.benchdiff_bin }}'
+        export ACTION_PATH INSTALL_ONLY BENCHDIFF_ARGS BENCHDIFF_BIN
+        "$ACTION_PATH/src/run.sh"
+    - id: report-status
+      shell: bash
+      run: |
+        export ACTION_PATH='${{ github.action_path }}'
+        export INSTALL_ONLY='${{ inputs.install_only }}'
+        export REPORT_STATUS='${{ inputs.report_status }}'
+        export BENCH_COMMAND='${{ steps.run-benchdiff.outputs.bench_command }}'
+        export BENCHSTAT_OUTPUT='${{ steps.run-benchdiff.outputs.benchstat_output }}'
+        export DEGRADED_RESULT='${{ steps.run-benchdiff.outputs.degraded_result }}'
+        export HEAD_SHA='${{ steps.run-benchdiff.outputs.head_sha }}'
+        export BASE_SHA='${{ steps.run-benchdiff.outputs.base_sha }}'
+        export GH_TOKEN='${{ inputs.github_token }}'
+        export STATUS_NAME='${{ inputs.status_name }}'
+        "$ACTION_PATH/src/report-status.sh"
