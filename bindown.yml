@@ -19,6 +19,14 @@ dependencies:
     vars:
       version: 0.7.1
 templates:
+  action-doc:
+    url: https://github.com/WillAbides/action-doc/releases/download/v{{.version}}/action-doc_{{.version}}_{{.os}}_{{.arch}}.tar.gz
+    required_vars:
+    - version
+    systems:
+    - darwin/amd64
+    - linux/386
+    - linux/amd64
   origin#gobin:
     url: https://github.com/myitcv/gobin/releases/download/v{{.version}}/{{.os}}-{{.arch}}
     archive_path: '{{.os}}-{{.arch}}'
