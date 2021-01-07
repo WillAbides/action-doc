@@ -39,7 +39,7 @@ Flags:
 
 Add a [bindown](https://github.com/willabides/bindown) dependency:
 
-``` shell
+```
 $ bindown template-source add action-doc https://raw.githubusercontent.com/WillAbides/action-doc/main/bindown.yml
 $ bindown dependency add action-doc action-doc#action-doc
 Please enter a value for required variable "version":	<latest version>
