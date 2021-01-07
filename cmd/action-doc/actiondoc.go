@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	actiondoc "github.com/willabides/action-doc"
@@ -10,24 +9,19 @@ import (
 
 var osExit = os.Exit
 
-func main() {
-	run(os.Stdin, os.Stdout, os.Stderr, osExit)
-	err := os.Stdout.Close()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func run(stdin io.Reader, stdout, stderr io.Writer, osExit func(int)) {
-	markdown, err := actiondoc.ActionMarkdown(stdin)
-	if err != nil {
-		fmt.Fprintf(stderr, "error reading action definition: %v", err)
-		osExit(1)
+func exitOnErr(err error, stmt string, args ...interface{}) {
+	if err == nil {
 		return
 	}
-	_, err = stdout.Write(markdown)
-	if err != nil {
-		fmt.Fprintf(stderr, "error writing: %v", err)
-		osExit(1)
-	}
+	fmt.Fprintf(os.Stderr, stmt, args...)
+	osExit(1)
+}
+
+func main() {
+	markdown, err := actiondoc.ActionMarkdown(os.Stdin)
+	exitOnErr(err, "error reading action definition: %v", err)
+	_, err = os.Stdout.Write(markdown)
+	exitOnErr(err, "error writing: %v", err)
+	err = os.Stdout.Close()
+	exitOnErr(err, "error flushing stdout: %v", err)
 }
