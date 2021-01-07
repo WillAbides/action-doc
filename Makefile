@@ -13,6 +13,9 @@ bin/shellcheck:
 bin/gobin:
 	script/bindown install $(notdir $@)
 
+bin/action-doc: gobuildcache
+	${GOBUILD} -o $@ ./cmd/action-doc
+
 HANDCRAFTED_REV := 082e94edadf89c33db0afb48889c8419a2cb46a9
 bin/handcrafted: bin/gobin
 	GOBIN=${CURDIR}/bin \

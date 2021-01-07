@@ -1,7 +1,5 @@
 # benchdiff
 
-Author: me
-
 run benchdiff and report status
 
 ## Inputs

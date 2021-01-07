@@ -9,8 +9,53 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+type markdownConfig struct {
+	SkipName              bool
+	SkipActionDescription bool
+	SkipAuthor            bool
+	HeaderPrefix          string
+}
+
+// MarkdownOption is an option for configuring markdown output
+type MarkdownOption func(config *markdownConfig)
+
+// SkipName skip outputting the name of the action
+func SkipName(val bool) MarkdownOption {
+	return func(config *markdownConfig) {
+		config.SkipName = val
+	}
+}
+
+// SkipActionDescription skip outputting the description of the action
+func SkipActionDescription(val bool) MarkdownOption {
+	return func(config *markdownConfig) {
+		config.SkipActionDescription = val
+	}
+}
+
+// SkipAuthor skip outputting the action author
+func SkipAuthor(val bool) MarkdownOption {
+	return func(config *markdownConfig) {
+		config.SkipAuthor = val
+	}
+}
+
+// HeaderPrefix some extra #s to put in front of each markdown header
+func HeaderPrefix(val string) MarkdownOption {
+	return func(config *markdownConfig) {
+		config.HeaderPrefix = val
+	}
+}
+
 // ActionMarkdown reads an action.yml file and returns some markdown suitable for a quality README.md
-func ActionMarkdown(r io.Reader) ([]byte, error) {
+func ActionMarkdown(r io.Reader, option ...MarkdownOption) ([]byte, error) {
+	var cfg markdownConfig
+	for _, opt := range option {
+		opt(&cfg)
+	}
+	if !cfg.SkipName {
+		cfg.HeaderPrefix += "#"
+	}
 	var props actionProperties
 	b, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -20,8 +65,12 @@ func ActionMarkdown(r io.Reader) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	data := tmplData{
+		Config:     cfg,
+		Properties: props,
+	}
 	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, &props)
+	err = tmpl.Execute(&buf, &data)
 	if err != nil {
 		panic(err)
 	}
@@ -48,16 +97,22 @@ type actionOutputProperties struct {
 	Description string `json:"description"`
 }
 
-var tmpl = template.Must(template.New("").Parse(`# {{ .Name }}
+type tmplData struct {
+	Config     markdownConfig
+	Properties actionProperties
+}
 
-{{if .Author }}Author: {{.Author}}
-    
-{{end}}
-{{- .Description }}
+var tmpl = template.Must(template.New("").Parse(`
+{{- with .Properties}}{{ if not $.Config.SkipName }}{{$.Config.HeaderPrefix}} {{ .Name }}
+{{ end }}
+{{ if not $.Config.SkipAuthor }}{{if .Author }}Author: {{.Author}}
 
-{{ if .Inputs }}## Inputs
+{{end}}{{end}}
+{{- if not $.Config.SkipActionDescription }}{{ .Description }}
 
-{{ range $name, $props := .Inputs -}}### {{ $name }}
+{{end}}{{ if .Inputs }}{{$.Config.HeaderPrefix}}# Inputs
+
+{{ range $name, $props := .Inputs -}}{{$.Config.HeaderPrefix}}## {{ $name }}
 {{if $props.DeprecationMessage }}
 __Deprecated__ - {{$props.DeprecationMessage }}
 {{end -}}
@@ -74,11 +129,11 @@ default: bktk{{ $props.Default }}bktk
 {{end -}}
 {{end -}}
 {{- if .Outputs -}}
-## Outputs
+{{$.Config.HeaderPrefix}}# Outputs
 {{range $name, $props := .Outputs}}
-### {{ $name }}
+{{$.Config.HeaderPrefix}}## {{ $name }}
 
 {{ $props.Description }}
 {{end -}}
-{{end -}}
+{{end -}}{{- end -}}
 `))

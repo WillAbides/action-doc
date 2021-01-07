@@ -2,26 +2,51 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
+	"github.com/alecthomas/kong"
 	actiondoc "github.com/willabides/action-doc"
 )
 
-var osExit = os.Exit
+type cliOptions struct {
+	Version kong.VersionFlag `help:"Show version and exit"`
 
-func exitOnErr(err error, stmt string, args ...interface{}) {
-	if err == nil {
-		return
-	}
-	fmt.Fprintf(os.Stderr, stmt, args...)
-	osExit(1)
+	SkipActionAuthor      bool   `help:"Skip outputting the action author"`
+	SkipActionName        bool   `help:"Skip outputting the action name"`
+	SkipActionDescription bool   `help:"Skip outputting the action description"`
+	HeaderPrefix          string `help:"Some extra #s for the markdown headers"`
+	ActionConfig          string `kong:"arg,help='action.yml to parse'"`
 }
 
+var cli cliOptions
+
+func run(stdout io.Writer) error {
+	opts := []actiondoc.MarkdownOption{
+		actiondoc.HeaderPrefix(cli.HeaderPrefix),
+		actiondoc.SkipName(cli.SkipActionName),
+		actiondoc.SkipActionDescription(cli.SkipActionDescription),
+		actiondoc.SkipAuthor(cli.SkipActionAuthor),
+	}
+	input, err := os.Open(cli.ActionConfig)
+	if err != nil {
+		return err
+	}
+	markdown, err := actiondoc.ActionMarkdown(input, opts...)
+	if err != nil {
+		return fmt.Errorf("error parsing action definition: %v", err)
+	}
+	_, err = stdout.Write(markdown)
+	if err != nil {
+		return fmt.Errorf("error writing: %v", err)
+	}
+	return err
+}
+
+var version = "unknown"
+
 func main() {
-	markdown, err := actiondoc.ActionMarkdown(os.Stdin)
-	exitOnErr(err, "error reading action definition: %v", err)
-	_, err = os.Stdout.Write(markdown)
-	exitOnErr(err, "error writing: %v", err)
-	err = os.Stdout.Close()
-	exitOnErr(err, "error flushing stdout: %v", err)
+	kong.Parse(&cli, kong.Vars{
+		"version": version,
+	}).FatalIfErrorf(run(os.Stdout))
 }

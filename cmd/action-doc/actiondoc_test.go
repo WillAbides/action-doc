@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bytes"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,94 +11,101 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setOSStdin(t *testing.T, file *os.File) {
-	t.Helper()
-	stdin := os.Stdin
-	os.Stdin = file
-	t.Cleanup(func() {
-		os.Stdin = stdin
-	})
+type errWriter struct{}
+
+func (b *errWriter) Write(p []byte) (int, error) {
+	return 0, assert.AnError
 }
 
-func captureOsOut(t *testing.T, target string, fn func()) []byte {
-	t.Helper()
-	tmpDir := t.TempDir()
-	filename := filepath.Join(tmpDir, target)
-	writer, err := os.Create(filename)
-	require.NoError(t, err)
-	switch target {
-	case "stdout":
-		orig := os.Stdout
-		os.Stdout = writer
-		fn()
-		os.Stdout = orig
-	case "stderr":
-		orig := os.Stderr
-		os.Stderr = writer
-		fn()
-		os.Stderr = orig
-	default:
-		panic("must be stdout or stderr")
-	}
-	got, err := ioutil.ReadFile(filename)
-	require.NoError(t, err)
-	return got
+func testdataActions(filename string) string {
+	return filepath.Join(filepath.FromSlash("../../testdata/actions"), filename)
 }
 
-func captureAllOSOut(t *testing.T, fn func()) (stdout, stderr []byte) {
-	t.Helper()
-	stdout = captureOsOut(t, "stdout", func() {
-		stderr = captureOsOut(t, "stderr", fn)
-	})
-	return stdout, stderr
-}
-
-func requireExit(t *testing.T, exits bool, code int) {
-	exited := false
-	exitCode := 0
-	orig := osExit
-	osExit = func(n int) {
-		if exited {
-			t.Error("only one exit allowed")
-		}
-		exited = true
-		exitCode = n
-	}
-	t.Cleanup(func() {
-		osExit = orig
-		assert.Equal(t, exits, exited)
-		assert.Equal(t, code, exitCode)
-	})
-}
-
-func Test_main(t *testing.T) {
-	t.Run("invalid yaml", func(t *testing.T) {
-		requireExit(t, true, 1)
-		tmpDir := t.TempDir()
-		err := ioutil.WriteFile(filepath.Join(tmpDir, "stdin"), []byte("boogers"), 0o600)
-		require.NoError(t, err)
-		stdin, err := os.Open(filepath.Join(tmpDir, "stdin"))
-		require.NoError(t, err)
-		setOSStdin(t, stdin)
-		stdout, stderr := captureAllOSOut(t, main)
-		require.Empty(t, stdout)
-		require.True(t, strings.HasPrefix(string(stderr), "error reading action definition:"))
-	})
-
-	t.Run("happy path", func(t *testing.T) {
-		requireExit(t, false, 0)
-		stdin, err := os.Open(filepath.FromSlash("../../testdata/actions/ex1.yml"))
-		require.NoError(t, err)
-		setOSStdin(t, stdin)
-		want, err := ioutil.ReadFile(filepath.FromSlash("../../testdata/actions/ex1.md"))
-		require.NoError(t, err)
-		var stderr []byte
-		stdout := captureOsOut(t, "stdout", func() {
-			stderr = captureOsOut(t, "stderr", func() {
-				main()
-			})
+func Test_run(t *testing.T) {
+	for _, td := range []struct {
+		name     string
+		wantFile string
+		cli      cliOptions
+	}{
+		{
+			name:     "as it comes",
+			wantFile: "ex1.md",
+		},
+		{
+			name:     "--skip-action-name",
+			wantFile: "ex1-skip_name.md",
+			cli: cliOptions{
+				SkipActionName: true,
+			},
+		},
+		{
+			name:     "--skip-action-author",
+			wantFile: "ex1-skip_author.md",
+			cli: cliOptions{
+				SkipActionAuthor: true,
+			},
+		},
+		{
+			name:     "--skip-action-description",
+			wantFile: "ex1-skip_action_description.md",
+			cli: cliOptions{
+				SkipActionDescription: true,
+			},
+		},
+		{
+			name:     "gotta skip 'em all",
+			wantFile: "ex1-skip_all.md",
+			cli: cliOptions{
+				SkipActionDescription: true,
+				SkipActionAuthor:      true,
+				SkipActionName:        true,
+			},
+		},
+	} {
+		t.Run(td.name, func(t *testing.T) {
+			want, err := ioutil.ReadFile(testdataActions(td.wantFile))
+			require.NoError(t, err)
+			cli = td.cli
+			if cli.ActionConfig == "" {
+				cli.ActionConfig = testdataActions("ex1.yml")
+			}
+			var stdout bytes.Buffer
+			err = run(&stdout)
+			require.NoError(t, err)
+			require.Equal(t, string(want), stdout.String())
 		})
-		require.Equal(t, string(want), string(stdout))
-		require.Empty(t, stderr)
+	}
+
+	t.Run("invalid yaml", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		actionConfig := filepath.Join(tmpDir, "action.yml")
+		err := ioutil.WriteFile(actionConfig, []byte("boogers"), 0o600)
+		require.NoError(t, err)
+		cli = cliOptions{
+			ActionConfig: actionConfig,
+		}
+		var stdout bytes.Buffer
+		err = run(&stdout)
+		require.Error(t, err)
+		require.True(t, strings.HasPrefix(err.Error(), "error parsing action definition:"))
+		require.Empty(t, stdout.String())
+	})
+
+	t.Run("missing file", func(t *testing.T) {
+		cli = cliOptions{
+			ActionConfig: "fake_file.yml",
+		}
+		var stdout bytes.Buffer
+		err := run(&stdout)
+		require.EqualError(t, err, "open fake_file.yml: no such file or directory")
+		require.Empty(t, stdout.String())
+	})
+
+	t.Run("bad stdout", func(t *testing.T) {
+		cli = cliOptions{
+			ActionConfig: testdataActions("ex1.yml"),
+		}
+		err := run(new(errWriter))
+		require.EqualError(t, err, "error writing: assert.AnError general error for testing")
 	})
 }

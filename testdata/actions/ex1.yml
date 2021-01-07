@@ -1,5 +1,6 @@
 name: benchdiff
 description: run benchdiff and report status
+author: me
 branding:
   icon: zap
   color: purple
