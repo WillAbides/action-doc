@@ -6,15 +6,11 @@ run benchdiff and report status
 
 ## Inputs
 
-### benchdiff_args
+### benchdiff_version
 
-default: `--base-ref=$default_base_ref`
+default: `0.4.1`
 
-Arguments for the benchdiff command.
-All instances of $default_base_ref will be replaced with this repo's default branch.
-
-See https://github.com/willabides/benchdiff for usage
-
+Version of benchdiff to use (exclude "v" from the front of the release name)
 
 ### benchdiff_dir
 
@@ -23,18 +19,6 @@ __Deprecated__ - Let's pretend this is deprecated
 default: `${{ runner.temp }}/benchdiff`
 
 Where benchdiff will be installed
-
-### benchdiff_version
-
-default: `0.4.1`
-
-Version of benchdiff to use (exclude "v" from the front of the release name)
-
-### github_token
-
-__Required__
-
-Token to use for reporting status.
 
 ### install_only
 
@@ -54,15 +38,23 @@ default: `benchdiff`
 
 Name to use in reporting status.
 
+### github_token
+
+__Required__
+
+Token to use for reporting status.
+
+### benchdiff_args
+
+default: `--base-ref=$default_base_ref`
+
+Arguments for the benchdiff command.
+All instances of $default_base_ref will be replaced with this repo's default branch.
+
+See https://github.com/willabides/benchdiff for usage
+
+
 ## Outputs
-
-### base_sha
-
-git revision benchstat used as base
-
-### bench_command
-
-command used to run benchmarks
 
 ### benchdiff_bin
 
@@ -72,10 +64,18 @@ path to the benchdiff executable
 
 output from benchstat
 
-### degraded_result
+### bench_command
 
-whether any part of the results is degraded
+command used to run benchmarks
 
 ### head_sha
 
 git revision benchstat used as head
+
+### base_sha
+
+git revision benchstat used as base
+
+### degraded_result
+
+whether any part of the results is degraded

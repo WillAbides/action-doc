@@ -1,6 +1,7 @@
 package actiondoc
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -55,9 +56,12 @@ func TestActionMarkdown(t *testing.T) {
 			t.Cleanup(func() {
 				require.NoError(t, actionFile.Close())
 			})
-			want, err := ioutil.ReadFile(filepath.FromSlash(td.wantFile))
+			var got []byte
+			got, err = ActionMarkdown(actionFile, td.opts...)
 			require.NoError(t, err)
-			got, err := ActionMarkdown(actionFile, td.opts...)
+			fmt.Println(string(got))
+			var want []byte
+			want, err = ioutil.ReadFile(filepath.FromSlash(td.wantFile))
 			require.NoError(t, err)
 			require.Equal(t, string(want), string(got))
 		})

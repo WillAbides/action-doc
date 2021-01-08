@@ -2,11 +2,12 @@ package actiondoc
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"text/template"
 
-	"github.com/ghodss/yaml"
+	"gopkg.in/yaml.v2"
 )
 
 type markdownConfig struct {
@@ -78,23 +79,44 @@ func ActionMarkdown(r io.Reader, option ...MarkdownOption) ([]byte, error) {
 	return result, nil
 }
 
+type ioVal struct {
+	Key   string
+	Props map[string]interface{}
+}
+
+type ioVals []ioVal
+
+func (v *ioVals) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var slice yaml.MapSlice
+	err := unmarshal(&slice)
+	if err != nil {
+		return err
+	}
+	var mp map[string]map[string]interface{}
+	err = unmarshal(&mp)
+	if err != nil {
+		return err
+	}
+	*v = make(ioVals, len(slice))
+	for i := 0; i < len(slice); i++ {
+		key, ok := slice[i].Key.(string)
+		if !ok {
+			return fmt.Errorf("expected key to be a string but got a %T", slice[i].Key)
+		}
+		(*v)[i] = ioVal{
+			Key:   key,
+			Props: mp[key],
+		}
+	}
+	return nil
+}
+
 type actionProperties struct {
-	Name        string                            `json:"name"`
-	Author      string                            `json:"author"`
-	Description string                            `json:"description"`
-	Inputs      map[string]actionInputProperties  `json:"inputs"`
-	Outputs     map[string]actionOutputProperties `json:"outputs"`
-}
-
-type actionInputProperties struct {
-	Description        string `json:"description"`
-	DeprecationMessage string `json:"deprecationMessage"`
-	Required           bool   `json:"required"`
-	Default            string `json:"default"`
-}
-
-type actionOutputProperties struct {
-	Description string `json:"description"`
+	Name        string
+	Author      string
+	Description string
+	Inputs      ioVals
+	Outputs     ioVals
 }
 
 type tmplData struct {
@@ -110,30 +132,29 @@ var tmpl = template.Must(template.New("").Parse(`
 {{end}}{{end}}
 {{- if not $.Config.SkipActionDescription }}{{ .Description }}
 
-{{end}}{{ if .Inputs }}{{$.Config.HeaderPrefix}}# Inputs
+{{end}}{{$.Config.HeaderPrefix}}# Inputs
 
-{{ range $name, $props := .Inputs -}}{{$.Config.HeaderPrefix}}## {{ $name }}
-{{if $props.DeprecationMessage }}
-__Deprecated__ - {{$props.DeprecationMessage }}
+{{ range .Inputs -}}{{$.Config.HeaderPrefix}}## {{ .Key }}
+{{if .Props.deprecationMessage }}
+__Deprecated__ - {{.Props.deprecationMessage }}
 {{end -}}
-{{if $props.Required }}
+{{if .Props.required }}
 __Required__
 {{end -}}
-{{if $props.Default }}
-default: bktk{{ $props.Default }}bktk
+{{if .Props.default }}
+default: bktk{{ .Props.default }}bktk
 {{end -}}
-{{if $props.Description }}
-{{.Description}}
+{{if .Props.description }}
+{{.Props.description}}
 
-{{end -}}
 {{end -}}
 {{end -}}
 {{- if .Outputs -}}
 {{$.Config.HeaderPrefix}}# Outputs
-{{range $name, $props := .Outputs}}
-{{$.Config.HeaderPrefix}}## {{ $name }}
+{{range .Outputs}}
+{{$.Config.HeaderPrefix}}## {{ .Key }}
 
-{{ $props.Description }}
+{{ .Props.description }}
 {{end -}}
 {{end -}}{{- end -}}
 `))
