@@ -21,8 +21,8 @@ func TestActionMarkdown(t *testing.T) {
 			wantFile: "testdata/actions/ex1.md",
 		},
 		{
-			name:     "PostDescriptionText",
-			opts:     []MarkdownOption{PostDescriptionText(`
+			name: "PostDescriptionText",
+			opts: []MarkdownOption{PostDescriptionText(`
 
 There once was a man from Peru.
 

@@ -21,6 +21,7 @@ type markdownConfig struct {
 // MarkdownOption is an option for configuring markdown output
 type MarkdownOption func(config *markdownConfig)
 
+// PostDescriptionText some text to add after the description
 func PostDescriptionText(txt string) MarkdownOption {
 	return func(config *markdownConfig) {
 		config.PostDescriptionText = txt

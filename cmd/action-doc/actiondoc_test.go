@@ -32,7 +32,7 @@ func Test_run(t *testing.T) {
 			wantFile: "ex1.md",
 		},
 		{
-			name: "--post-description-text",
+			name:     "--post-description-text",
 			wantFile: "ex1-post_description_text.md",
 			cli: cliOptions{
 				PostDescriptionText: `

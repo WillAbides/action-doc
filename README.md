@@ -20,12 +20,13 @@ Arguments:
   <action-config>    action.yml to parse
 
 Flags:
-  -h, --help                       Show context-sensitive help.
-      --version                    Show version and exit
-      --skip-action-author         Skip outputting the action author
-      --skip-action-name           Skip outputting the action name
-      --skip-action-description    Skip outputting the action description
-      --header-prefix=STRING       Some extra #s for the markdown headers
+  -h, --help                            Show context-sensitive help.
+      --version                         Show version and exit
+      --skip-action-author              Skip outputting the action author
+      --skip-action-name                Skip outputting the action name
+      --skip-action-description         Skip outputting the action description
+      --post-description-text=STRING    Some text to insert after the description
+      --header-prefix=STRING            Some extra #s for the markdown headers
 ```
 <!--- end usage output --->
 
