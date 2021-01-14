@@ -21,6 +21,15 @@ func TestActionMarkdown(t *testing.T) {
 			wantFile: "testdata/actions/ex1.md",
 		},
 		{
+			name:     "PostDescriptionText",
+			opts:     []MarkdownOption{PostDescriptionText(`
+
+There once was a man from Peru.
+
+`)},
+			wantFile: "testdata/actions/ex1-post_description_text.md",
+		},
+		{
 			name:     "SkipActionName",
 			opts:     []MarkdownOption{SkipActionName(true)},
 			wantFile: "testdata/actions/ex1-skip_name.md",

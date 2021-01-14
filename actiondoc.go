@@ -14,11 +14,18 @@ type markdownConfig struct {
 	SkipActionName        bool
 	SkipActionDescription bool
 	SkipActionAuthor      bool
+	PostDescriptionText   string
 	HeaderPrefix          string
 }
 
 // MarkdownOption is an option for configuring markdown output
 type MarkdownOption func(config *markdownConfig)
+
+func PostDescriptionText(txt string) MarkdownOption {
+	return func(config *markdownConfig) {
+		config.PostDescriptionText = txt
+	}
+}
 
 // SkipActionName skip outputting the name of the action
 func SkipActionName(val bool) MarkdownOption {
@@ -131,6 +138,9 @@ var tmpl = template.Must(template.New("").Parse(`
 
 {{end}}{{end}}
 {{- if not $.Config.SkipActionDescription }}{{ .Description }}
+
+{{end}}
+{{- if $.Config.PostDescriptionText }}{{ $.Config.PostDescriptionText }}
 
 {{end}}{{$.Config.HeaderPrefix}}# Inputs
 
